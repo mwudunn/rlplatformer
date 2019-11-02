@@ -23,11 +23,16 @@ class PlatformerEnv(gym.Env):
                                                 render=enable_render)
         else:
             raise AttributeError("Failed to find platformer file")
-
+        
+        self.window_size = self.platformer_view.window_size
         
         #TODO: Define action space
+        self.action_space = spaces.Discrete(3)
 
         #TODO: Define observation
+        low = np.zeros(len(self.window_size), dtype=int)
+        high =  np.array(self.window_size, dtype=int) - np.ones(len(self.window_size), dtype=int)
+        self.observation_space = spaces.Box(low, high, dtype=np.int64)
 
         # Initial conditions
         self.start_point = self.platformer_view.start_point
@@ -94,7 +99,6 @@ class PlatformerEnv(gym.Env):
         pass
 
     def _take_action(self, action): 
-
         if isinstance(action, int):
             self.player.perform_action(self.ACTIONS[action])
         else:
@@ -102,7 +106,21 @@ class PlatformerEnv(gym.Env):
 
     def _get_reward(self):
         """ Reward is given for minimizing the distance to the goal. """
-        current_state = self.env.getState()
+        state = self._get_state()
+        # Encode:
+        #   - At goal (max reward for reaching the goal)
+        #   - Velocity (higher abs(velocity)  - better rewards)
+        #   - Clock time (> clock time - worse rewards)
+        #   - Distance from goal (closer to goal - better rewards)
+        #   - Depth?
+        #   - Stuck (velocity = 0), encourage jumping/changing direction )
+        if state == self.goal:
+            return 10.0
+        elif abs(player.velocity[0]):
+            return 1.0/(self.get_distance_from_goal())
+        else:
+            return -1.0/(self.get_distance_from_goal())
+
 
     def _done(self):
         return self.platformer_view.game_over
