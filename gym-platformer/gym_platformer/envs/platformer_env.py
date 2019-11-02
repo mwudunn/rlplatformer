@@ -29,13 +29,15 @@ class PlatformerEnv(gym.Env):
         #TODO: Define action space
         self.action_space = spaces.Discrete(3)
 
-        #TODO: Define observation
-        low = np.zeros(len(self.window_size), dtype=int)
-        high =  np.array(self.window_size, dtype=int) - np.ones(len(self.window_size), dtype=int)
+        #TODO: Define observation - window size is a tuple defining grid
+        low = np.zeros(self.window_size, dtype=int)
+        high =  np.array(self.window_size, dtype=int) - np.ones(self.window_size, dtype=int)
         self.observation_space = spaces.Box(low, high, dtype=np.int64)
 
         # Initial conditions
-        self.state = self.platformer_view.window
+        self.player = (self.platformer_view.player)
+        self.state = (self.platformer_view.window, self.player.get_location()) 
+        self.goal = self.platformer_view.goal
 
         # Simulation related variables
         self.seed()
@@ -88,33 +90,47 @@ class PlatformerEnv(gym.Env):
 
     def _reset(self):
         #TODO reset game in platformer_game
-        pass
+        self.platformer_view.reset()
 
     def _render(self, mode='human', close=False):
         pass
     
     def _get_state(self):
-        pass
+        self.state = (self.platformer_view.window, self.player.get_location())
+        return self.state
 
     def _take_action(self, action): 
         if isinstance(action, int):
             self.player.perform_action(self.ACTIONS[action])
         else:
             self.player.perform_action(action)
+    
+    def manhattanDistance(pt1, pt2):
+        return abs(p1[0] - pt2[0]) + abs(pt1[1] - pt2[1])
+    
+    def get_distance_from_goal(self):
+        return manhattanDistance(self.player.get_location(), self.goal)
 
     def _get_reward(self):
         """ Reward is given for minimizing the distance to the goal. """
         state = self._get_state()
         # Encode:
         #   - At goal (max reward for reaching the goal)
+        #   - Can see goal/seen goal: get better rewards
         #   - Velocity (higher abs(velocity)  - better rewards)
         #   - Clock time (> clock time - worse rewards)
         #   - Distance from goal (closer to goal - better rewards)
         #   - Depth?
         #   - Stuck (velocity = 0), encourage jumping/changing direction )
-        if state == self.goal:
+        
+        # Can see goal:
+        goalVisible = False
+        if 2 in state:
+            goalVisible = True
+        
+        if state[1] == self.goal:
             return 10.0
-        elif abs(player.velocity[0]):
+        elif abs(self.player.velocity[0]):
             return 1.0/(self.get_distance_from_goal())
         else:
             return -1.0/(self.get_distance_from_goal())
