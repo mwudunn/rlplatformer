@@ -35,9 +35,7 @@ class PlatformerEnv(gym.Env):
         self.observation_space = spaces.Box(low, high, dtype=np.int64)
 
         # Initial conditions
-        self.start_point = self.platformer_view.start_point
-        self.goal = self.platformer_view.goal
-        self.player = self.platformer_view.player
+        self.state = self.platformer_view.window
 
         # Simulation related variables
         self.seed()
