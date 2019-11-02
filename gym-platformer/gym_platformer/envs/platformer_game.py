@@ -2,10 +2,12 @@ import pygame
 import random
 import numpy as np
 import os
+from enum import Enum
 
-
-GAME_SPEED = 0.01
-GRAVITY_MODIFIER = -10.0
+GAME_SPEED = 0.1
+GRAVITY_MODIFIER = 0.07
+JUMP_SPEED = 4.0
+MOVE_SPEED = 2.0
 
 #Game Parameters
 params = {
@@ -13,8 +15,15 @@ params = {
 	"GOAL": 2,
 	"OBSTACLE": 3
 }
+
+class Action(Enum):
+	NONE = 0
+	LEFT = 1
+	RIGHT = 2
+	JUMP = 3
+
 class Platformer2D:
-	def __init__(self, file_path="test_map.npy", render=True):
+	def __init__(self, file_path="test_map.npy", render=False, play_game=False):
 
 		pygame.init()
 		pygame.display.set_caption("Platformer")
@@ -34,19 +43,19 @@ class Platformer2D:
 				else:
 					raise FileExistsError("Cannot find %s." % file_path)
 			map_cells = Map.load_map(file_path)
-			self.map = Map(map_cells=map_cells)
+			self.game_map = Map(map_cells=map_cells)
 			file = np.load(file_path)
 
 		
 
 
-		self.start_point = self.map.get_locations_of_symbol(1)[0]
-		self.goal = self.map.get_locations_of_symbol(2)[0]
+		self.start_point = self.game_map.get_locations_of_symbol(1)[0]
+		self.goal = self.game_map.get_locations_of_symbol(2)[0]
 
-		start_location = self.map.get_location_from_index(self.start_point)
+		start_location = self.game_map.get_location_from_index(self.start_point)
 
-		self.player = Player(start_location=start_location, game_map=self.map)
-		self.window_size = self.map.get_window_size()
+		self.player = Player(start_location=start_location, game_map=self.game_map)
+		self.window_size = self.game_map.get_window_size()
 
 		if self.render:			
 			# to show the right and bottom border
@@ -54,44 +63,55 @@ class Platformer2D:
 			self.window_size = tuple(map(sum, zip(self.window_size, (-1, -1))))
 			self.map_layer = pygame.Surface(self.screen.get_size()).convert_alpha()
 
-		#self.game_loop()		
-
-	def draw_obstacles(self):
-		BLUE=(40,40,120)
-		obstacle_locations = self.map.get_locations_of_symbol(3)
-
-		cell_width = self.map.get_cell_size()
-		for loc in obstacle_locations:
-			loc = np.flip(loc)
-			draw_location = loc * self.map.get_cell_size()
-			rect = pygame.Rect(draw_location, self.map.get_cell_size())
-			draw_rect = pygame.draw.rect(self.map_layer,BLUE, rect)
+		if play_game:
+			self.game_loop()
 
 	def game_loop(self):
 		BLACK=(0,0,0,0)
 		dt = 0
-		while True:
+		while not self.game_over:
+			ac = Action.NONE
 			ev = pygame.event.poll()    
 			if ev.type == pygame.QUIT:  
-			    break                  
+				break    
 
-			
+			keys = pygame.key.get_pressed()
+			if keys[pygame.K_LEFT]:
+				ac = Action.LEFT 
+				
+			if keys[pygame.K_RIGHT]:
+				ac = Action.RIGHT   
+
+			if keys[pygame.K_SPACE] and not self.player.in_air:
+				ac = Action.JUMP
+
+			self.player.perform_action(ac, dt)
+			self.screen.fill(BLACK)
 			self.map_layer.fill(BLACK)
-			self.draw_obstacles()
-			self.player.perform_action("Right", dt)
+			self.game_map.draw_objects(self.map_layer)
+			
 			# self.player.update_position(dt)
 			self.player.draw(self.map_layer)
+
 			self.screen.blit(self.map_layer, (0,0))
 
 			pygame.display.flip()
-			pygame.display.update()
 			dt = self.clock.tick(60)
+
+			self.update_environment()
+
 		pygame.quit() 
 
+	def update_environment(self):
+		if self.game_map.check_goal_collision(self.player):
+			self.game_over = True
+		return self.game_over
+
 	def reset(self):
+		self.game_over = False
 		self.clock = pygame.time.Clock()
 		self.start_time = pygame.time.get_ticks()
-		self.player = Player(start_location=self.start_point, game_map=self.map)
+		self.player = Player(start_location=self.start_point, game_map=self.game_map)
 
 def create_test_map():
 	map_vals = np.zeros((10, 15))
@@ -107,63 +127,66 @@ def create_test_map():
 
 class Player:
 
-	ACTIONS = {
-		"None",
-        "Left",
-        "Right",
-        "Jump"
-    }
 	def __init__(self, start_location, game_map, size=[32,64], color=(160,40,40)):
 		self.location = np.array(start_location)
 		self.game_map = game_map
 		self.location[0] += size[0] // 2
 		self.size = size
 		self.color = color
+		self.in_air = False
 		self.velocity = np.array([0.0, 0.0])
 		self.rect = pygame.Rect(self.location, self.size)
 
 	def get_location(self):
 		return self.location
 
-	def perform_action(self, action, dt):
-		if action is not None and action not in self.ACTIONS:
+	def get_rect(self):
+		return self.rect
+
+	def perform_action(self, ac, dt):
+		if ac is not None and ac not in Action:
 			raise ValueError("Action cannot be %s. Please choose one of the following actions: %s."
-                             % (str(action), str(self.ACTIONS)))
+							 % (str(ac), str(Action)))
 		
-		if action == "Left":
-			self.velocity[0] = -1.0
-		elif action == "Right":
-			self.velocity[0] = 1.0
-		elif action == "None":
+		if ac == Action.LEFT:
+			self.velocity[0] = -1.0 * MOVE_SPEED
+		elif ac == Action.RIGHT:
+			self.velocity[0] = 1.0 * MOVE_SPEED
+		elif ac == Action.NONE:
 			self.velocity[0] = 0.0
 
-		if action == "Jump":
+		if ac == Action.JUMP:
 			self.in_air = True
-			self.velocity[1] = 1.0
+			self.velocity[1] = -JUMP_SPEED
 
-		self.update_state(dt)
+		return self.update_state(dt)
 
 	def update_state(self, dt):
-		move_amount = self.velocity * (GAME_SPEED * dt)
-		new_location = self.location + move_amount
-		next_rect = self.rect.move(int(move_amount[0]), int(move_amount[1]))
-
 		if self.in_air:
 			self.velocity[1] += GRAVITY_MODIFIER * dt * GAME_SPEED
+			if self.velocity[1] > 5.0:
+				self.velocity[1] = 5.0
 
-		if self.game_map.check_bounds(new_location, next_rect):
-			self.location = new_location
+		next_location = self.location + self.velocity * (GAME_SPEED * dt)
+		next_rect = pygame.Rect(next_location, self.size)
+
+		
+		if self.game_map.check_obstacle_below(next_rect) and self.velocity[1] > 0.0:
+			self.velocity[1] = 0.0
+			self.in_air = False
+		if not self.game_map.check_obstacle_collision(next_rect):
+			self.location = next_location
 			self.rect = next_rect
+
+	def collide(self, rect):
+		return self.get_rect().colliderect(rect)
 
 	def draw(self, layer):
 		pixel_loc = self.location.astype(int)
-		draw_rect = pygame.draw.rect(layer,self.color, self.rect)
-
-	
+		draw_rect = pygame.draw.rect(layer,self.color, self.rect)		
 
 
 class Map:
-
 	def __init__(self, map_cells=None, map_size=(5,5), cell_size=[64, 64]):
 		self.map_cells = map_cells
 		self.cell_size = cell_size
@@ -172,11 +195,21 @@ class Map:
 		else:
 			self.map_size = map_cells.shape
 			obstacle_locations = self.get_locations_of_symbol(3)
+			goal_locations = self.get_locations_of_symbol(2)
+
 			self.obstacles = []
 			for obstacle_index_loc in obstacle_locations:
-				obstacle_loc = get_location_from_index(obstacle_index_loc)
+				obstacle_loc = self.get_location_from_index(obstacle_index_loc)
 				obstacle = pygame.Rect(obstacle_loc, cell_size)
 				self.obstacles.append(obstacle)
+
+			self.goals = []
+			for goal_index_loc in goal_locations:
+				goal_loc = self.get_location_from_index(goal_index_loc)
+				goal = pygame.Rect(goal_loc, cell_size)
+				self.goals.append(goal)
+
+
 
 	def load_map(file_path):
 		return np.load(file_path)
@@ -203,11 +236,37 @@ class Map:
 		height = int( self.map_size[0] * self.cell_size[0])
 		return [width, height]
 
-	def check_bounds(self, player_rect):
+	def check_goal_collision(self, player):
+		for goal in self.goals:
+			if player.collide(goal):
+				return True
+		return False
+
+	def check_obstacle_collision(self, player_rect):
 		for obstacle in self.obstacles:
 			if player_rect.colliderect(obstacle):
-				return False
-		return True
+				return True
+		return False
+
+	def check_obstacle_below(self, player_rect):
+		for obstacle in self.obstacles:
+			if obstacle.collidepoint(player_rect.centerx, player_rect.bottom + 1):
+				return True
+		return False
+
+	def draw_objects(self, layer):
+		self.draw_obstacles(layer)
+		self.draw_goal(layer)
+
+	def draw_goal(self, layer):
+		COLOR=(200,80,80)
+		for goal in self.goals:
+			draw_rect = pygame.draw.rect(layer, COLOR, goal)
+
+	def draw_obstacles(self, layer):
+		BLUE=(40,40,120)
+		for obstacle in self.obstacles:
+			draw_rect = pygame.draw.rect(layer, BLUE, obstacle)
 
 	@property
 	def MAP_W(self):

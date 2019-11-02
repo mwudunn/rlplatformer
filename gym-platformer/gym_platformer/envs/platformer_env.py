@@ -4,13 +4,13 @@ import numpy
 
 from gym import error, spaces, utils
 from gym.utils import seeding
-from gym_platformer.envs.plaformer_game import Plaformer2D
+from gym_platformer.envs.plaformer_game import Plaformer2D, Action
 
 logger = logging.getLogger(__name__)
 
 class PlatformerEnv(gym.Env):
     metadata = {'render.modes': ['human']}
-    ACTIONS = ["Left", "Right", "Jump"]
+    ACTIONS = [Action.NONE, Action.LEFT, Action.RIGHT, Action.JUMP]
 
     def __init__(self, platformer_file=None, plaformer_size=None, enable_render=True):
         self.viewer = None
@@ -47,7 +47,7 @@ class PlatformerEnv(gym.Env):
         # Initialize the relevant attributes
         self.configure()
 
-    def _step(self, action):
+    def step(self, action):
         """
 
         Parameters
@@ -76,35 +76,36 @@ class PlatformerEnv(gym.Env):
                  However, official evaluations of your agent are not allowed to
                  use this for learning.
         """
-        _ = self._take_action(action)
+        _ = self.take_action(action)
         
         #TODO: Define what an observation is (window) 
-        ob = self._get_state()
+        ob = self.get_state()
         
         #TODO: Get reward from current state:
-        reward = self._get_reward()
+        reward = self.get_reward()
         
         # Define game over variables
-        done = self._done()
+        done = self.done()
 
         return ob, reward, done, {}
 
-    def _reset(self):
+    def reset(self):
         #TODO reset game in platformer_game
         self.platformer_view.reset()
 
-    def _render(self, mode='human', close=False):
+    def render(self, mode='human', close=False):
         pass
     
-    def _get_state(self):
+    def get_state(self):
         self.state = (self.platformer_view.window, self.player.get_location())
         return self.state
 
-    def _take_action(self, action): 
+    def take_action(self, action): 
         if isinstance(action, int):
             self.player.perform_action(self.ACTIONS[action], self.dt)
         else:
             self.player.perform_action(action, self.dt)
+        self.platformer_view.update_environment()
     
     def manhattanDistance(pt1, pt2):
         return abs(p1[0] - pt2[0]) + abs(pt1[1] - pt2[1])
@@ -112,9 +113,9 @@ class PlatformerEnv(gym.Env):
     def get_distance_from_goal(self):
         return manhattanDistance(self.player.get_location(), self.goal)
 
-    def _get_reward(self):
+    def get_reward(self):
         """ Reward is given for minimizing the distance to the goal. """
-        state = self._get_state()
+        state = self.get_state()
         # Encode:
         #   - At goal (max reward for reaching the goal)
         #   - Can see goal/seen goal: get better rewards
@@ -137,5 +138,5 @@ class PlatformerEnv(gym.Env):
             return -1.0/(self.get_distance_from_goal())
 
 
-    def _done(self):
+    def done(self):
         return self.platformer_view.game_over
