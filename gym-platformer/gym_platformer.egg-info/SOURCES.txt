@@ -1,0 +1,7 @@
+README.md
+setup.py
+gym_platformer.egg-info/PKG-INFO
+gym_platformer.egg-info/SOURCES.txt
+gym_platformer.egg-info/dependency_links.txt
+gym_platformer.egg-info/requires.txt
+gym_platformer.egg-info/top_level.txt

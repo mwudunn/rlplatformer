@@ -1,0 +1,6 @@
+README.md
+setup.py
+QLearning.egg-info/PKG-INFO
+QLearning.egg-info/SOURCES.txt
+QLearning.egg-info/dependency_links.txt
+QLearning.egg-info/top_level.txt

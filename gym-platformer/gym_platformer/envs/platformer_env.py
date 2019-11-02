@@ -4,7 +4,7 @@ import numpy
 
 from gym import error, spaces, utils
 from gym.utils import seeding
-from gym_platformer.envs.plaformer_game import Plaformer2D, Action
+from gym_platformer.envs.platformer_game import *
 
 logger = logging.getLogger(__name__)
 
@@ -12,14 +12,13 @@ class PlatformerEnv(gym.Env):
     metadata = {'render.modes': ['human']}
     ACTIONS = [Action.NONE, Action.LEFT, Action.RIGHT, Action.JUMP]
 
-    def __init__(self, platformer_file=None, plaformer_size=None, enable_render=True):
+    def __init__(self, platformer_file="test_map.npy", plaformer_size=None, enable_render=False):
         self.viewer = None
         self.enable_render = enable_render
 
         if platformer_file:
             #TODO: Add platform naming abilities
-            self.platformer_view = Platformer2d(file_path=platformer_file,
-                                                size=platformer_size,
+            self.platformer_view = Platformer2D(file_path=platformer_file,
                                                 render=enable_render)
         else:
             raise AttributeError("Failed to find platformer file")
@@ -30,13 +29,13 @@ class PlatformerEnv(gym.Env):
         self.action_space = spaces.Discrete(3)
 
         #TODO: Define observation - window size is a tuple defining grid
-        low = np.zeros(self.window_size, dtype=int)
-        high =  np.array(self.window_size, dtype=int) - np.ones(self.window_size, dtype=int)
+        low = np.zeros(len(self.window_size), dtype=float)
+        high =  np.array(self.window_size, dtype=float) - np.ones(len(self.window_size), dtype=float)
         self.observation_space = spaces.Box(low, high, dtype=np.int64)
 
         # Initial conditions
         self.player = (self.platformer_view.player)
-        self.state = (self.platformer_view.window, self.player.get_location()) 
+        self.state = (None, self.player.get_location()) 
         self.goal = self.platformer_view.goal
         self.dt = 1
 
@@ -45,7 +44,7 @@ class PlatformerEnv(gym.Env):
         self.reset()
 
         # Initialize the relevant attributes
-        self.configure()
+        # self.configure()
 
     def step(self, action):
         """
