@@ -29,8 +29,8 @@ class PlatformerEnv(gym.Env):
         self.action_space = spaces.Discrete(3)
 
         #TODO: Define observation - window size is a tuple defining grid
-        low = np.zeros(len(self.window_size), dtype=float)
-        high =  np.array(self.window_size, dtype=float) - np.ones(len(self.window_size), dtype=float)
+        low = np.zeros(len(self.window_size), dtype=int)
+        high =  np.array(self.window_size, dtype=int) - np.ones(len(self.window_size), dtype=int)
         self.observation_space = spaces.Box(low, high, dtype=np.int64)
 
         # Initial conditions

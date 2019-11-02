@@ -104,7 +104,7 @@ def atari_model(img_input, num_actions, scope, reuse=False):
 
 def platformer_model(obs, num_actions, scope, reuse=False):
     with tf.variable_scope(scope, reuse=reuse):
-        out = obs
+        out = tf.cast(obs, tf.float32)
         with tf.variable_scope("action_value"):
             out = layers.fully_connected(out, num_outputs=64, activation_fn=tf.nn.relu)
             out = layers.fully_connected(out, num_outputs=64, activation_fn=tf.nn.relu)
