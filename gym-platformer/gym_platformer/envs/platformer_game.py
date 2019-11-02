@@ -117,7 +117,7 @@ class Player:
 	def get_location(self):
 		return self.location
 
-	def perform_action(self, action, dt):
+	def perform_action(self, action, dt, map):
 		if action is not None and action not in self.ACTIONS:
 			raise ValueError("Action cannot be %s. Please choose one of the following actions: %s."
                              % (str(action), str(self.ACTIONS)))
@@ -144,6 +144,7 @@ class Player:
 			self.location = new_location
 
 	def check_bounds(self, location):
+		tile = self.game_map.convert_position_to_tile(location)
 		if location[0] < 0 or location[0] > self.game_map.MAP_W or location[1] < 0 or location[1] > self.game_map.MAP_H:
 			return False
 		return True
@@ -177,6 +178,11 @@ class Map:
 		x = int( index[1] * self.cell_size[1])
 		y = int( index[0] * self.cell_size[0])
 		return [x, y]
+
+	def convert_position_to_tile(self, location):
+		x_index = math.floor(location[0] / self.cell_size[0])
+		y_index = math.floor(location[1] / self.cell_size[1])
+		return [x_index, y_index]
 
 	def get_cell_size(self):
 		return self.cell_size
