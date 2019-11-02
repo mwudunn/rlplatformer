@@ -6,6 +6,13 @@ import os
 
 GAME_SPEED = 0.01
 GRAVITY_MODIFIER = -10.0
+
+#Game Parameters
+params = {
+	"PLAYER": 1,
+	"GOAL": 2,
+	"OBSTACLE": 3
+}
 class Platformer2D:
 	def __init__(self, file_path="test_map.npy", render=True):
 
@@ -101,22 +108,24 @@ def create_test_map():
 class Player:
 
 	ACTIONS = {
+		"None",
         "Left",
         "Right",
         "Jump"
     }
-	def __init__(self, start_location, game_map, size=[32,64], color=(160,40,40), ):
+	def __init__(self, start_location, game_map, size=[32,64], color=(160,40,40)):
 		self.location = np.array(start_location)
 		self.game_map = game_map
 		self.location[0] += size[0] // 2
 		self.size = size
 		self.color = color
 		self.velocity = np.array([0.0, 0.0])
+		self.rect = pygame.Rect(self.location, self.size)
 
 	def get_location(self):
 		return self.location
 
-	def perform_action(self, action, dt, map):
+	def perform_action(self, action, dt):
 		if action is not None and action not in self.ACTIONS:
 			raise ValueError("Action cannot be %s. Please choose one of the following actions: %s."
                              % (str(action), str(self.ACTIONS)))
@@ -125,7 +134,7 @@ class Player:
 			self.velocity[0] = -1.0
 		elif action == "Right":
 			self.velocity[0] = 1.0
-		else:
+		elif action == "None":
 			self.velocity[0] = 0.0
 
 		if action == "Jump":
@@ -135,17 +144,20 @@ class Player:
 		self.update_state(dt)
 
 	def update_state(self, dt):
-		new_location = self.location + self.velocity * (GAME_SPEED * dt)
+		move_amount = self.velocity * (GAME_SPEED * dt)
+		new_location = self.location + move_amount
+		next_rect = self.rect.move(int(move_amount[0]), int(move_amount[1]))
+
 		if self.in_air:
 			self.velocity[1] += GRAVITY_MODIFIER * dt * GAME_SPEED
 
-		if self.game_map.check_bounds(new_location):
+		if self.game_map.check_bounds(new_location, next_rect):
 			self.location = new_location
+			self.rect = next_rect
 
 	def draw(self, layer):
 		pixel_loc = self.location.astype(int)
-		rect = pygame.Rect(self.location, self.size)
-		draw_rect = pygame.draw.rect(layer,self.color, rect)
+		draw_rect = pygame.draw.rect(layer,self.color, self.rect)
 
 	
 
@@ -192,11 +204,9 @@ class Map:
 		return [width, height]
 
 	def check_bounds(self, player_rect):
-		if location[0] < 0 or location[0] > self.game_map.MAP_W or location[1] < 0 or location[1] > self.game_map.MAP_H:
-			return False
-		
 		for obstacle in self.obstacles:
-			return False
+			if player_rect.colliderect(obstacle):
+				return False
 		return True
 
 	@property
