@@ -41,18 +41,13 @@ class Platformer2D:
 		self.player = Player(start_location=start_location, game_map=self.map)
 		self.window_size = self.map.get_window_size()
 
-		if self.render:
-			
-			BLACK=(0,0,0,0)
-			
-
+		if self.render:			
 			# to show the right and bottom border
 			self.screen = pygame.display.set_mode(self.window_size)
 			self.window_size = tuple(map(sum, zip(self.window_size, (-1, -1))))
 			self.map_layer = pygame.Surface(self.screen.get_size()).convert_alpha()
 
-		#self.game_loop()
-
+		#self.game_loop()		
 
 	def draw_obstacles(self):
 		BLUE=(40,40,120)
@@ -87,6 +82,8 @@ class Platformer2D:
 		pygame.quit() 
 
 	def reset(self):
+		self.clock = pygame.time.Clock()
+		self.start_time = pygame.time.get_ticks()
 		self.player = Player(start_location=self.start_point, game_map=self.map)
 
 def create_test_map():
@@ -142,14 +139,8 @@ class Player:
 		if self.in_air:
 			self.velocity[1] += GRAVITY_MODIFIER * dt * GAME_SPEED
 
-		if self.check_bounds(new_location):
+		if self.game_map.check_bounds(new_location):
 			self.location = new_location
-
-	def check_bounds(self, location):
-		tile = self.game_map.convert_position_to_tile(location)
-		if location[0] < 0 or location[0] > self.game_map.MAP_W or location[1] < 0 or location[1] > self.game_map.MAP_H:
-			return False
-		return True
 
 	def draw(self, layer):
 		pixel_loc = self.location.astype(int)
@@ -168,6 +159,12 @@ class Map:
 			self.map_size = map_size
 		else:
 			self.map_size = map_cells.shape
+			obstacle_locations = self.get_locations_of_symbol(3)
+			self.obstacles = []
+			for obstacle_index_loc in obstacle_locations:
+				obstacle_loc = get_location_from_index(obstacle_index_loc)
+				obstacle = pygame.Rect(obstacle_loc, cell_size)
+				self.obstacles.append(obstacle)
 
 	def load_map(file_path):
 		return np.load(file_path)
@@ -194,7 +191,13 @@ class Map:
 		height = int( self.map_size[0] * self.cell_size[0])
 		return [width, height]
 
-
+	def check_bounds(self, player_rect):
+		if location[0] < 0 or location[0] > self.game_map.MAP_W or location[1] < 0 or location[1] > self.game_map.MAP_H:
+			return False
+		
+		for obstacle in self.obstacles:
+			return False
+		return True
 
 	@property
 	def MAP_W(self):
