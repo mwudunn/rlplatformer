@@ -7,7 +7,7 @@ import os
 GAME_SPEED = 0.01
 GRAVITY_MODIFIER = -10.0
 class Platformer2D:
-	def __init__(self, file_path="test_map.npy", size=(5,5), render=True):
+	def __init__(self, file_path="test_map.npy", render=True):
 
 		pygame.init()
 		pygame.display.set_caption("Platformer")
@@ -39,17 +39,19 @@ class Platformer2D:
 		start_location = self.map.get_location_from_index(self.start_point)
 
 		self.player = Player(start_location=start_location, game_map=self.map)
+		self.window_size = self.map.get_window_size()
 
-		if self.render is True:
+		if self.render:
 			
 			BLACK=(0,0,0,0)
-			self.window_size = self.map.get_window_size()
+			
 
 			# to show the right and bottom border
 			self.screen = pygame.display.set_mode(self.window_size)
 			self.window_size = tuple(map(sum, zip(self.window_size, (-1, -1))))
 			self.map_layer = pygame.Surface(self.screen.get_size()).convert_alpha()
-		self.game_loop()
+
+		#self.game_loop()
 
 
 	def draw_obstacles(self):
@@ -191,6 +193,8 @@ class Map:
 		width = int( self.map_size[1] * self.cell_size[1])
 		height = int( self.map_size[0] * self.cell_size[0])
 		return [width, height]
+
+
 
 	@property
 	def MAP_W(self):
