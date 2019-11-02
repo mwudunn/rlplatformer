@@ -1,14 +1,45 @@
 import gym
 import logging
+import numpy
+
+from gym import error, spaces, utils
+from gym.utils import seeding
+from gym_platformer.envs.plaformer_game import Plaformer2D
 
 logger = logging.getLogger(__name__)
 
 class PlatformerEnv(gym.Env):
     metadata = {'render.modes': ['human']}
-    ACTION = ["Left", "Right", "Jump"]
+    ACTIONS = ["Left", "Right", "Jump"]
 
-    def __init__(self):
-        pass
+    def __init__(self, platformer_file=None, plaformer_size=None, enable_render=True):
+        self.viewer = None
+        self.enable_render = enable_render
+
+        if platformer_file:
+            #TODO: Add platform naming abilities
+            self.platformer_view = Platformer2d(file_path=platformer_file,
+                                                size=platformer_size,
+                                                render=enable_render)
+        else:
+            raise AttributeError("Failed to find platformer file")
+
+        
+        #TODO: Define action space
+
+        #TODO: Define observation
+
+        # Initial conditions
+        self.start_point = self.platformer_view.start_point
+        self.goal = self.platformer_view.goal
+        self.player = self.platformer_view.player
+
+        # Simulation related variables
+        self.seed()
+        self.reset()
+
+        # Initialize the relevant attributes
+        self.configure()
 
     def _step(self, action):
         """
@@ -39,25 +70,39 @@ class PlatformerEnv(gym.Env):
                  However, official evaluations of your agent are not allowed to
                  use this for learning.
         """
-        self._take_action(action)
-        self.status = self.env.step()
+        _ = self._take_action(action)
+        
+        #TODO: Define what an observation is (window) 
+        ob = self._get_state()
+        
+        #TODO: Get reward from current state:
         reward = self._get_reward()
-        ob = self.env.getState()
-        episode_over = self.status != hfo_py.IN_GAME
-        return ob, reward, episode_over, {}
+        
+        # Define game over variables
+        done = self._done()
 
-    def __configure_environment(self):
-        #Setup the level
+        return ob, reward, done, {}
 
     def _reset(self):
+        #TODO reset game in platformer_game
         pass
 
     def _render(self, mode='human', close=False):
         pass
-
-    def _take_action(self, action):
+    
+    def _get_state(self):
         pass
+
+    def _take_action(self, action): 
+
+        if isinstance(action, int):
+            self.player.perform_action(self.ACTIONS[action])
+        else:
+            self.player.perform_action(action)
 
     def _get_reward(self):
         """ Reward is given for minimizing the distance to the goal. """
         current_state = self.env.getState()
+
+    def _done(self):
+        return self.platformer_view.game_over
