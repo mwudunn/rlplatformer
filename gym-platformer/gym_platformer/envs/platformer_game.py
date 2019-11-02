@@ -5,6 +5,7 @@ import os
 
 
 GAME_SPEED = 0.01
+GRAVITY_MODIFIER = -10.0
 class Platformer2D:
 	def __init__(self, file_path="test_map.npy", size=(5,5), render=True):
 
@@ -113,7 +114,7 @@ class Player:
 	def get_location(self):
 		return self.location
 
-	def perform_action(self, action):
+	def perform_action(self, action, dt):
 		if action is not None and action not in self.ACTIONS:
 			raise ValueError("Action cannot be %s. Please choose one of the following actions: %s."
                              % (str(action), str(self.ACTIONS)))
@@ -122,10 +123,20 @@ class Player:
 			self.velocity[0] = -1.0
 		elif action == "Right":
 			self.velocity[0] = 1.0
+		else:
+			self.velocity[0] = 0.0
 
+		if action == "Jump":
+			self.in_air = True
+			self.velocity[1] = 1.0
 
-	def update_position(self, dt):
+		self.update_state(dt)
+
+	def update_state(self, dt):
 		new_location = self.location + self.velocity * (GAME_SPEED * dt)
+		if self.in_air:
+			self.velocity[1] += GRAVITY_MODIFIER * dt * GAME_SPEED
+			
 		if self.check_bounds(new_location):
 			self.location = new_location
 
