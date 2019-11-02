@@ -74,8 +74,8 @@ class Platformer2D:
 			
 			self.map_layer.fill(BLACK)
 			self.draw_obstacles()
-			self.player.perform_action("Right")
-			self.player.update_position(dt)
+			self.player.perform_action("Right", dt)
+			# self.player.update_position(dt)
 			self.player.draw(self.map_layer)
 			self.screen.blit(self.map_layer, (0,0))
 
@@ -83,6 +83,9 @@ class Platformer2D:
 			pygame.display.update()
 			dt = self.clock.tick(60)
 		pygame.quit() 
+
+	def reset(self):
+		self.player = Player(start_location=self.start_point, game_map=self.map)
 
 def create_test_map():
 	map_vals = np.zeros((10, 15))
@@ -136,7 +139,7 @@ class Player:
 		new_location = self.location + self.velocity * (GAME_SPEED * dt)
 		if self.in_air:
 			self.velocity[1] += GRAVITY_MODIFIER * dt * GAME_SPEED
-			
+
 		if self.check_bounds(new_location):
 			self.location = new_location
 
@@ -149,6 +152,9 @@ class Player:
 		pixel_loc = self.location.astype(int)
 		rect = pygame.Rect(self.location, self.size)
 		draw_rect = pygame.draw.rect(layer,self.color, rect)
+
+	
+
 
 class Map:
 
