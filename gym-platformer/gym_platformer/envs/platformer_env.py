@@ -38,6 +38,7 @@ class PlatformerEnv(gym.Env):
         self.player = (self.platformer_view.player)
         self.state = (self.platformer_view.window, self.player.get_location()) 
         self.goal = self.platformer_view.goal
+        self.dt = 1
 
         # Simulation related variables
         self.seed()
@@ -101,9 +102,9 @@ class PlatformerEnv(gym.Env):
 
     def _take_action(self, action): 
         if isinstance(action, int):
-            self.player.perform_action(self.ACTIONS[action])
+            self.player.perform_action(self.ACTIONS[action], self.dt)
         else:
-            self.player.perform_action(action)
+            self.player.perform_action(action, self.dt)
     
     def manhattanDistance(pt1, pt2):
         return abs(p1[0] - pt2[0]) + abs(pt1[1] - pt2[1])
