@@ -91,6 +91,7 @@ class PlatformerEnv(gym.Env):
     def reset(self):
         #TODO reset game in platformer_game
         self.platformer_view.reset()
+        return self.get_state()
 
     def render(self, mode='human', close=False):
         pass
