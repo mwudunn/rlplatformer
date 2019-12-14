@@ -26,7 +26,7 @@ class PlatformerEnv(gym.Env):
         self.window_size = self.platformer_view.window_size
         
         #TODO: Define action space
-        self.action_space = spaces.Discrete(3)
+        self.action_space = spaces.Discrete(4)
 
         #TODO: Define observation - window size is a tuple defining grid
         low = np.zeros(len(self.window_size), dtype=int)
@@ -34,8 +34,10 @@ class PlatformerEnv(gym.Env):
         self.observation_space = spaces.Box(low, high, dtype=np.int64)
 
         # Initial conditions
-        self.player = (self.platformer_view.player)
-        self.state = (None, self.player.get_location()) 
+        self.player = self.platformer_view.player
+        
+
+        self.state = self.player.get_location() 
         self.goal = self.platformer_view.goal
         self.dt = 1
 
@@ -97,21 +99,19 @@ class PlatformerEnv(gym.Env):
         pass
     
     def get_state(self):
-        self.state = (self.platformer_view.window, self.player.get_location())
+        self.state = self.player.get_location()
         return self.state
 
     def take_action(self, action): 
-        if isinstance(action, int):
-            self.player.perform_action(self.ACTIONS[action], self.dt)
-        else:
-            self.player.perform_action(action, self.dt)
+        action = int(action)
+        self.player.perform_action(self.ACTIONS[action], self.dt)
         self.platformer_view.update_environment()
     
-    def manhattanDistance(pt1, pt2):
-        return abs(p1[0] - pt2[0]) + abs(pt1[1] - pt2[1])
+    def manhattanDistance(self, pt1, pt2):
+        return abs(int(pt1[0]) - int(pt2[0])) + abs(int(pt1[1]) - int(pt2[1]))
     
     def get_distance_from_goal(self):
-        return manhattanDistance(self.player.get_location(), self.goal)
+        return self.manhattanDistance(self.player.get_location(), self.goal)
 
     def get_reward(self):
         """ Reward is given for minimizing the distance to the goal. """
@@ -129,8 +129,8 @@ class PlatformerEnv(gym.Env):
         goalVisible = False
         if 2 in state:
             goalVisible = True
-        
-        if state[1] == self.goal:
+       
+        if self.get_distance_from_goal() == 0:
             return 10.0
         elif abs(self.player.velocity[0]):
             return 1.0/(self.get_distance_from_goal())

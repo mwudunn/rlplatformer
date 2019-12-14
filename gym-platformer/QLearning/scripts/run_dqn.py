@@ -95,7 +95,7 @@ def main():
 
 
 if __name__ == "__main__":
-    import cs285.agents.dqn_agent
-    print(cs285.agents.dqn_agent.__file__)
+    import QLearning.agents.dqn_agent
+    print(QLearning.agents.dqn_agent.__file__)
 
     main()
