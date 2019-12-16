@@ -6,9 +6,9 @@ from enum import Enum
 
 GAME_SPEED = 0.1
 GRAVITY_MODIFIER = 0.07
-JUMP_SPEED = 4.0
+JUMP_SPEED = 5.0
 MOVE_SPEED = 2.0
-
+BLACK=(0,0,0,0)
 #Game Parameters
 params = {
 	"PLAYER": 1,
@@ -23,13 +23,16 @@ class Action(Enum):
 	JUMP = 3
 
 class Platformer2D:
-	def __init__(self, file_path="test_map.npy", render=False, play_game=False):
+	def __init__(self, file_path="test_map.npy", enable_render=False, play_game=False, alloted_time=50000):
 
 		pygame.init()
 		pygame.display.set_caption("Platformer")
 		self.clock = pygame.time.Clock()
 		self.game_over = False
-		self.render = render
+		self.enable_render = enable_render
+		self.dt = 1
+		self.timesteps = 0
+		self.alloted_time = alloted_time
 		
 		#Generate a new map
 		if file_path is None:
@@ -46,19 +49,15 @@ class Platformer2D:
 			self.game_map = Map(map_cells=map_cells)
 			file = np.load(file_path)
 
-		
-
-
 		self.start_point = self.game_map.get_locations_of_symbol(1)[0]
 		self.goal = self.game_map.get_locations_of_symbol(2)[0]
-
 		start_location = self.game_map.get_location_from_index(self.start_point)
-
 		self.player = Player(start_location=start_location, game_map=self.game_map)
 		self.window_size = self.game_map.get_window_size()
 
-		if self.render:			
+		if self.enable_render:			
 			# to show the right and bottom border
+
 			self.screen = pygame.display.set_mode(self.window_size)
 			self.window_size = tuple(map(sum, zip(self.window_size, (-1, -1))))
 			self.map_layer = pygame.Surface(self.screen.get_size()).convert_alpha()
@@ -66,9 +65,36 @@ class Platformer2D:
 		if play_game:
 			self.game_loop()
 
+	def get_goal_location(self):
+		return np.array(self.game_map.get_location_from_index(self.goal))
+
+	def get_remaining_time(self):
+		return self.alloted_time - self.timesteps
+
+	def render(self, mode='human', close=False):
+		if mode == "human":
+			self.screen.fill(BLACK)
+			self.map_layer.fill(BLACK)
+			self.game_map.draw_objects(self.map_layer)
+			
+			# self.player.update_position(dt)
+			self.player.draw(self.map_layer)
+
+			self.screen.blit(self.map_layer, (0,0))
+
+			pygame.display.flip()
+
+	def get_player(self):
+		return self.player
+
+	def perform_action(self, ac, dt=15):
+		self.timesteps += dt
+		self.player.perform_action(ac, dt)
+
 	def game_loop(self):
-		BLACK=(0,0,0,0)
+		
 		dt = 0
+		self.reset()
 		while not self.game_over:
 			ac = Action.NONE
 			ev = pygame.event.poll()    
@@ -82,21 +108,13 @@ class Platformer2D:
 			if keys[pygame.K_RIGHT]:
 				ac = Action.RIGHT   
 
-			if keys[pygame.K_SPACE] and not self.player.in_air:
+			if keys[pygame.K_SPACE]:
 				ac = Action.JUMP
 
-			self.player.perform_action(ac, dt)
-			self.screen.fill(BLACK)
-			self.map_layer.fill(BLACK)
-			self.game_map.draw_objects(self.map_layer)
-			
-			# self.player.update_position(dt)
-			self.player.draw(self.map_layer)
-
-			self.screen.blit(self.map_layer, (0,0))
-
-			pygame.display.flip()
 			dt = self.clock.tick(60)
+			self.perform_action(ac, dt)
+			self.render()
+			
 
 			self.update_environment()
 
@@ -105,35 +123,49 @@ class Platformer2D:
 	def update_environment(self):
 		if self.game_map.check_goal_collision(self.player):
 			self.game_over = True
+		elif self.timesteps > self.alloted_time:
+			self.game_over = True
 		return self.game_over
 
 	def reset(self):
+		start_location = self.game_map.get_location_from_index(self.start_point)
 		self.game_over = False
+		self.timesteps = 0
 		self.clock = pygame.time.Clock()
 		self.start_time = pygame.time.get_ticks()
-		self.player = Player(start_location=self.start_point, game_map=self.game_map)
+		self.player = Player(start_location=start_location, game_map=self.game_map)
+
+	def get_state(self):
+		state = self.player.get_state()
+		state.append(self.get_remaining_time())
+		return np.array(state)
 
 def create_test_map():
-	map_vals = np.zeros((10, 15))
+	map_vals = np.zeros((20, 30))
 	map_vals[:, 0] = 3
 	map_vals[0,:] = 3
 	map_vals[:,-1] = 3
 	map_vals[-1, :] = 3
 	map_vals[-2,1] = 1
-	map_vals[-2,-2] = 2
+	map_vals[-17,15] = 2
+	map_vals[-5, 4:15] = 3
+	map_vals[-8, 17:25] = 3
+	map_vals[-12, 11:13] = 3
+	map_vals[-16, 15] = 3
+
 	np.save("platformer_maps/test_map", map_vals)
 
 
 
 class Player:
 
-	def __init__(self, start_location, game_map, size=[32,64], color=(160,40,40)):
+	def __init__(self, start_location, game_map, size=[32,32], color=(160,40,40)):
 		self.location = np.array(start_location)
 		self.game_map = game_map
 		self.location[0] += size[0] // 2
 		self.size = size
 		self.color = color
-		self.in_air = False
+		self.grounded = False
 		self.velocity = np.array([0.0, 0.0])
 		self.rect = pygame.Rect(self.location, self.size)
 
@@ -142,6 +174,9 @@ class Player:
 
 	def get_rect(self):
 		return self.rect
+
+	def get_state(self):
+		return [self.get_location()[0], self.get_location()[1], self.velocity[0], self.velocity[1]]
 
 	def perform_action(self, ac, dt):
 		if ac is not None and ac not in Action:
@@ -155,28 +190,38 @@ class Player:
 		elif ac == Action.NONE:
 			self.velocity[0] = 0.0
 
-		if ac == Action.JUMP:
-			self.in_air = True
+		if ac == Action.JUMP and self.grounded:
 			self.velocity[1] = -JUMP_SPEED
 
 		return self.update_state(dt)
 
 	def update_state(self, dt):
-		if self.in_air:
+		next_location = self.location + self.velocity * (GAME_SPEED * dt)
+		next_location_x = np.array([self.location[0] + self.velocity[0] * (GAME_SPEED * dt), self.location[1]])
+		next_location_y = np.array([self.location[0], self.location[1]  + self.velocity[1] * (GAME_SPEED * dt)])
+		next_rect_x = pygame.Rect(next_location_x, self.size)
+		next_rect_y = pygame.Rect(next_location_y, self.size)
+
+		if self.game_map.check_obstacle_collision(next_rect_y):
+			if self.velocity[1] > 0.0:
+				self.velocity[1] = 0.0
+				self.grounded = True
+			next_location = np.array([next_location[0], self.location[1]])
+		else:
+			self.grounded = False
+
+		if self.game_map.check_obstacle_collision(next_rect_x):
+			next_location = np.array([self.location[0], next_location[1]])
+
+		if not self.grounded:
 			self.velocity[1] += GRAVITY_MODIFIER * dt * GAME_SPEED
 			if self.velocity[1] > 5.0:
 				self.velocity[1] = 5.0
-
-		next_location = self.location + self.velocity * (GAME_SPEED * dt)
+		
 		next_rect = pygame.Rect(next_location, self.size)
 
-		
-		if self.game_map.check_obstacle_below(next_rect) and self.velocity[1] > 0.0:
-			self.velocity[1] = 0.0
-			self.in_air = False
-		if not self.game_map.check_obstacle_collision(next_rect):
-			self.location = next_location
-			self.rect = next_rect
+		self.location = next_location
+		self.rect = next_rect
 
 	def collide(self, rect):
 		return self.get_rect().colliderect(rect)
@@ -187,7 +232,7 @@ class Player:
 
 
 class Map:
-	def __init__(self, map_cells=None, map_size=(5,5), cell_size=[64, 64]):
+	def __init__(self, map_cells=None, map_size=(5,5), cell_size=[32, 32]):
 		self.map_cells = map_cells
 		self.cell_size = cell_size
 		if self.map_cells is None:
@@ -248,12 +293,6 @@ class Map:
 				return True
 		return False
 
-	def check_obstacle_below(self, player_rect):
-		for obstacle in self.obstacles:
-			if obstacle.collidepoint(player_rect.centerx, player_rect.bottom + 1):
-				return True
-		return False
-
 	def draw_objects(self, layer):
 		self.draw_obstacles(layer)
 		self.draw_goal(layer)
@@ -278,7 +317,7 @@ class Map:
 
 def main():
 	create_test_map()
-	a = Platformer2D()
+	a = Platformer2D(enable_render=True,play_game=True)
 
 if __name__ == "__main__":
 	main()

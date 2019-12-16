@@ -63,12 +63,13 @@ def main():
     parser.add_argument('--scalar_log_freq', type=int, default=int(1e4))
     parser.add_argument('--learning_rate', '-lr', type=float, default=0.0)
     parser.add_argument('--save_params', action='store_true')
+    parser.add_argument('--render', type=bool, default=False)
 
     args = parser.parse_args()
 
     # convert to dictionary
     params = vars(args)
-    params['video_log_freq'] = -1 # This param is not used for DQN
+    params['video_log_freq'] = 10000 # This param is not used for DQN
     ##################################
     ### CREATE DIRECTORY FOR LOGGING
     ##################################

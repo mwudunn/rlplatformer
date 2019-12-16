@@ -23,6 +23,8 @@ class Logger:
         self._summ_writer.add_image('{}'.format(name), image, step)
 
     def log_video(self, video_frames, name, step, fps=10):
+        print("#######Logging videos#########")
+
         assert len(video_frames.shape) == 5, "Need [N, T, C, H, W] input tensor for video logging!"
         self._summ_writer.add_video('{}'.format(name), video_frames, step, fps=fps)
 

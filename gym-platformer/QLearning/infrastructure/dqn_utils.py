@@ -56,17 +56,17 @@ def get_env_kwargs(env_name):
             return env
         kwargs = {
             'optimizer_spec': platformer_optimizer(),
-            'learning_starts': 1000,
+            'learning_starts': 10000,
             'target_update_freq': 10000,
             'batch_size': 32,
             'replay_buffer_size': int(1e4),
-            'num_timesteps': 100000,
+            'num_timesteps': 300000,
             'q_func': platformer_model,
             'learning_freq': 1,
             'grad_norm_clipping': 10,
             'input_shape': (84, 84, 4),
             'env_wrappers': platformer_empty_wrapper,
-            'frame_history_len': 4,
+            'frame_history_len': 1,
             'gamma': 0.99,
         }
         kwargs['exploration_schedule'] = platformer_exploration_schedule(kwargs['num_timesteps'])

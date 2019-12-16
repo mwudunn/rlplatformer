@@ -12,14 +12,15 @@ class PlatformerEnv(gym.Env):
     metadata = {'render.modes': ['human']}
     ACTIONS = [Action.NONE, Action.LEFT, Action.RIGHT, Action.JUMP]
 
-    def __init__(self, platformer_file="test_map.npy", plaformer_size=None, enable_render=False):
+    def __init__(self, platformer_file="test_map.npy", plaformer_size=None, enable_render=False, alloted_time=50000):
         self.viewer = None
         self.enable_render = enable_render
 
         if platformer_file:
             #TODO: Add platform naming abilities
             self.platformer_view = Platformer2D(file_path=platformer_file,
-                                                render=enable_render)
+                                                enable_render=enable_render,
+                                                alloted_time=alloted_time)
         else:
             raise AttributeError("Failed to find platformer file")
         
@@ -29,17 +30,15 @@ class PlatformerEnv(gym.Env):
         self.action_space = spaces.Discrete(4)
 
         #TODO: Define observation - window size is a tuple defining grid
-        low = np.zeros(len(self.window_size), dtype=int)
-        high =  np.array(self.window_size, dtype=int) - np.ones(len(self.window_size), dtype=int)
+        obs_shape = len(self.window_size) + 3
+        low = np.zeros(obs_shape, dtype=int)
+        high =  np.array([self.window_size[0], self.window_size[1], float("inf"), float("inf"), alloted_time])
         self.observation_space = spaces.Box(low, high, dtype=np.int64)
 
         # Initial conditions
-        self.player = self.platformer_view.player
+        self.state = self.get_state()
         
-
-        self.state = self.player.get_location() 
-        self.goal = self.platformer_view.goal
-        self.dt = 1
+        self.goal_location = self.platformer_view.get_goal_location()
 
         # Simulation related variables
         self.seed()
@@ -78,6 +77,7 @@ class PlatformerEnv(gym.Env):
                  use this for learning.
         """
         _ = self.take_action(action)
+
         
         #TODO: Define what an observation is (window) 
         ob = self.get_state()
@@ -96,22 +96,25 @@ class PlatformerEnv(gym.Env):
         return self.get_state()
 
     def render(self, mode='human', close=False):
-        pass
+        self.platformer_view.render(mode, close)
     
     def get_state(self):
-        self.state = self.player.get_location()
+        self.state = self.platformer_view.get_state()
         return self.state
 
     def take_action(self, action): 
         action = int(action)
-        self.player.perform_action(self.ACTIONS[action], self.dt)
+        self.platformer_view.perform_action(self.ACTIONS[action])
         self.platformer_view.update_environment()
+
     
     def manhattanDistance(self, pt1, pt2):
         return abs(int(pt1[0]) - int(pt2[0])) + abs(int(pt1[1]) - int(pt2[1]))
     
     def get_distance_from_goal(self):
-        return self.manhattanDistance(self.player.get_location(), self.goal)
+        # print(self.platformer_view.get_player().get_location(), self.goal_location)
+        return self.manhattanDistance(self.platformer_view.get_player().get_location(), self.goal_location)
+
 
     def get_reward(self):
         """ Reward is given for minimizing the distance to the goal. """
@@ -131,11 +134,10 @@ class PlatformerEnv(gym.Env):
             goalVisible = True
        
         if self.get_distance_from_goal() == 0:
-            return 10.0
-        elif abs(self.player.velocity[0]):
-            return 1.0/(self.get_distance_from_goal())
+            remaining_time = self.platformer_view.get_remaining_time()
+            return 10.0 * (1 - self.remaining_time / self.alloted_time) + 10
         else:
-            return -1.0/(self.get_distance_from_goal())
+            return 1.0/(self.get_distance_from_goal())
 
 
     def done(self):

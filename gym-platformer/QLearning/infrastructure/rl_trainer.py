@@ -44,7 +44,7 @@ class RL_Trainer(object):
         #############
 
         # Make the gym environment
-        self.env = gym.make(self.params['env_name'])
+        self.env = gym.make(self.params['env_name'], enable_render=self.params['render'])
         if 'env_wrappers' in self.params:
             # These operations are currently only for Atari envs
             self.env = wrappers.Monitor(self.env, os.path.join(self.params['logdir'], "gym"), force=True)
@@ -110,6 +110,7 @@ class RL_Trainer(object):
         # init vars at beginning of training
         self.total_envsteps = 0
         self.start_time = time.time()
+        render_steps = 10
 
         for itr in range(n_iter):
             #print("\n\n********** Iteration %i ************"%itr)
@@ -131,7 +132,11 @@ class RL_Trainer(object):
             # collect trajectories, to be used for training
             if isinstance(self.agent, DQNAgent):
                 # only perform an env step and add to replay buffer for DQN
-                self.agent.step_env()
+
+
+                render = (itr % 50000) < 5000 and itr > 50000
+                
+                self.agent.step_env(render=render)
                 envsteps_this_batch = 1
                 train_video_paths = None
                 paths = None
@@ -149,7 +154,6 @@ class RL_Trainer(object):
 
             # train agent (using sampled data from replay buffer)
             loss = self.train_agent()
-
             # log/save
             if self.logvideo or self.logmetrics:
                 # perform logging
