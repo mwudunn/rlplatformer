@@ -63,7 +63,7 @@ def main():
     parser.add_argument('--use_gpu', '-gpu', action='store_true')
     parser.add_argument('--which_gpu', '-gpu_id', default=0)
     parser.add_argument('--scalar_log_freq', type=int, default=int(1e4))
-    parser.add_argument('--learning_rate', '-lr', type=float, default=0.001)
+    parser.add_argument('--learning_rate', '-lr', type=float, default=0.1)
     parser.add_argument('--save_params', action='store_true')
     parser.add_argument('--render', type=bool, default=False)
 

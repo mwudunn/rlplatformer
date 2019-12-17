@@ -1,10 +1,21 @@
 import tensorflow as tf
 import numpy as np
 
-from QLearning.infrastructure.dqn_utils import MemoryOptimizedReplayBuffer, PiecewiseSchedule
+from QLearning.infrastructure.dqn_utils import MemoryOptimizedReplayBuffer, PiecewiseSchedule, get_wrapper_by_name
 from QLearning.policies.argmax_policy import ArgMaxPolicy
 from QLearning.critics.dqn_critic import DQNCritic
 import gym_platformer
+
+def log_episode(env):
+    episode_rewards = get_wrapper_by_name(env, "Monitor").get_episode_rewards()
+    episode_length = get_wrapper_by_name(env, "Monitor").get_episode_lengths()
+    last_episode_reward = -3000
+    if len(episode_rewards) > 0:
+        last_episode_reward = episode_rewards[-1]
+    
+    print("Current Episode: " + str(len(episode_length)))
+    print("Episode Reward: %f" % last_episode_reward)
+    print('Done logging...\n\n')
 
 class DQNAgent(object):
     def __init__(self, sess, env, agent_params):
@@ -94,11 +105,9 @@ class DQNAgent(object):
         # TODO if taking this step resulted in done, reset the env (and the latest observation)
         if render:
             self.env.render()
-            if done:
-                print("Done")
-            # print(action)
         if done:
-
+            if render:
+                log_episode(self.env)
             self.last_obs = self.env.reset()
 
     def sample(self, batch_size):

@@ -162,7 +162,7 @@ class RL_Trainer(object):
                 # only perform an env step and add to replay buffer for DQN
 
 
-                render = (itr % 50000) < 5000 and itr > 800000
+                render = (itr % 100000) < 5000 and itr > 100000
                 
                 self.agent.step_env(render=render)
                 envsteps_this_batch = 1
@@ -278,28 +278,49 @@ class RL_Trainer(object):
         
     ####################################
     ####################################
+
+    def log_episode(self):
+        episode_rewards = get_wrapper_by_name(self.env, "Monitor").get_episode_rewards()
+        episode_length = get_wrapper_by_name(self.env, "Monitor").get_episode_lengths()
+        last_episode_reward = -3000
+        if len(episode_rewards) > 0:
+            last_episode_reward = episode_rewards[-1]
+        
+
+        print("Timestep %d" % (self.agent.t,))
+        print("Current Episode: " + str(len(episode_length)))
+        print("Episode Reward: %f" % last_episode_reward)
+        print('Done logging...\n\n')
+
+
     def perform_dqn_logging(self):
         episode_rewards = get_wrapper_by_name(self.env, "Monitor").get_episode_rewards()
+        episode_length = get_wrapper_by_name(self.env, "Monitor").get_episode_lengths()
+        last_episode_reward = -3000
         if len(episode_rewards) > 0:
-            self.mean_episode_reward = np.mean(episode_rewards[-100:])
-        if len(episode_rewards) > 100:
+            self.mean_episode_reward = np.mean(episode_rewards[-10:])
+            last_episode_reward = episode_rewards[-1]
+        if len(episode_rewards) > 10:
             self.best_mean_episode_reward = max(self.best_mean_episode_reward, self.mean_episode_reward)
 
         logs = OrderedDict()
 
-        logs["Train_EnvstepsSoFar"] = self.agent.t
+        # logs["Train_EnvstepsSoFar"] = self.agent.t
         print("Timestep %d" % (self.agent.t,))
-        if self.mean_episode_reward > -5000:
-            logs["Train_AverageReturn"] = np.mean(self.mean_episode_reward)
-        print("mean reward (100 episodes) %f" % self.mean_episode_reward)
-        if self.best_mean_episode_reward > -5000:
-            logs["Train_BestReturn"] = np.mean(self.best_mean_episode_reward)
-        print("best mean reward %f" % self.best_mean_episode_reward)
+        print("Total Number of Episodes: " + str(len(episode_length)) + "\n")
+        print("Last Episode Reward: %f" % last_episode_reward)
+        # if self.mean_episode_reward > -5000:
+            # logs["Train_AverageReturn"] = np.mean(self.mean_episode_reward)
+        print("Mean reward (10 episodes) %f" % self.mean_episode_reward)
+        # if self.best_mean_episode_reward > -5000:
+            # logs["Train_BestReturn"] = np.mean(self.best_mean_episode_reward)
+        print("Best mean reward %f" % self.best_mean_episode_reward)
+        
 
         if self.start_time is not None:
             time_since_start = (time.time() - self.start_time)
             print("running time %f" % time_since_start)
-            logs["TimeSinceStart"] = time_since_start
+            # logs["TimeSinceStart"] = time_since_start
 
         sys.stdout.flush()
 

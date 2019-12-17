@@ -23,7 +23,7 @@ class Action(Enum):
 	JUMP = 3
 
 class Platformer2D:
-	def __init__(self, file_path="test_map.npy", enable_render=False, play_game=False, alloted_time=50000):
+	def __init__(self, file_path="test_map.npy", enable_render=False, play_game=False, alloted_time=10000):
 
 		pygame.init()
 		pygame.display.set_caption("Platformer")
@@ -87,7 +87,7 @@ class Platformer2D:
 	def get_player(self):
 		return self.player
 
-	def perform_action(self, ac, dt=15):
+	def perform_action(self, ac, dt=20):
 		self.timesteps += dt
 		self.player.perform_action(ac, dt)
 
