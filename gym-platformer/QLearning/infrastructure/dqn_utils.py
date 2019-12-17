@@ -60,7 +60,7 @@ def get_env_kwargs(env_name):
             'target_update_freq': 10000,
             'batch_size': 32,
             'replay_buffer_size': int(1e4),
-            'num_timesteps': 300000,
+            'num_timesteps': 1000000,
             'q_func': platformer_model,
             'learning_freq': 1,
             'grad_norm_clipping': 10,

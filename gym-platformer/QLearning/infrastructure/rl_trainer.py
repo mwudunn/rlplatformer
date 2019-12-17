@@ -16,6 +16,9 @@ from QLearning.infrastructure.logger import Logger
 from QLearning.agents.dqn_agent import DQNAgent
 from QLearning.infrastructure.dqn_utils import get_wrapper_by_name
 
+from QLearning.scripts.exploration import ExemplarExploration
+from QLearning.scripts.density_model import Exemplar
+
 # how many rollouts to save as videos to tensorboard
 MAX_NVIDEO = 2
 MAX_VIDEO_LEN = 40 # we overwrite this in the code below
@@ -44,7 +47,7 @@ class RL_Trainer(object):
         #############
 
         # Make the gym environment
-        self.env = gym.make(self.params['env_name'], enable_render=self.params['render'])
+        self.env = gym.make(self.params['env_name'])
         if 'env_wrappers' in self.params:
             # These operations are currently only for Atari envs
             self.env = wrappers.Monitor(self.env, os.path.join(self.params['logdir'], "gym"), force=True)
@@ -112,9 +115,34 @@ class RL_Trainer(object):
         self.start_time = time.time()
         render_steps = 10
 
+        # Initialize  exploration density model
+        ob_dim = self.params['agent_params']['ob_dim']
+        density_hiddim = self.params['agent_params']['density_hiddim']
+        density_lr = self.params['agent_params']['density_lr']
+        density_model = self.params['agent_params']['density_model']
+        kl_weight = self.params['agent_params']['kl_weight']
+        bonus_coeff = self.params['agent_params']['bonus_coeff']
+        density_train_iters = self.params['agent_params']['density_train_iters']
+        density_batch_size = self.params['agent_params']['density_batch_size']
+        replay_size = self.params['agent_params']['replay_size']
+        density_model = Exemplar(
+            ob_dim=ob_dim, 
+            hid_dim=density_hiddim,
+            learning_rate=density_lr, 
+            kl_weight=kl_weight)
+        self.exploration = ExemplarExploration(
+            density_model=density_model, 
+            bonus_coeff=bonus_coeff, 
+            train_iters=density_train_iters, 
+            bsize=density_batch_size,
+            replay_size=int(replay_size))
+        self.exploration.density_model.build_computation_graph()
+        self.exploration.receive_tf_sess(self.sess)
+
+        init_op = tf.global_variables_initializer()
+        self.sess.run(init_op)
         for itr in range(n_iter):
             #print("\n\n********** Iteration %i ************"%itr)
-
             # decide if videos should be rendered/logged at this iteration
             if itr % self.params['video_log_freq'] == 0 and self.params['video_log_freq'] != -1:
                 self.logvideo = True
@@ -134,15 +162,13 @@ class RL_Trainer(object):
                 # only perform an env step and add to replay buffer for DQN
 
 
-                render = (itr % 50000) < 5000 and itr > 50000
+                render = (itr % 50000) < 5000 and itr > 800000
                 
                 self.agent.step_env(render=render)
                 envsteps_this_batch = 1
                 train_video_paths = None
                 paths = None
-            else:
-                paths, envsteps_this_batch, train_video_paths = self.collect_training_trajectories(itr, initial_expertdata, collect_policy, self.params['batch_size'])
-
+            
             self.total_envsteps += envsteps_this_batch
 
             # relabel the collected obs with actions from a provided expert policy
@@ -223,7 +249,13 @@ class RL_Trainer(object):
             # HINT1: use the agent's sample function
             # HINT2: how much data = self.params['train_batch_size']
             ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self.agent.sample(self.params['train_batch_size'])
-
+            
+            
+            # add a little exploration spice in 
+            #if len(ob_batch) != 0: 
+            #    old_re_batch = re_batch
+            #    ll, lk, elbo = self.exploration.fit_density_model(ob_batch)
+            #    re_batch = self.exploration.modify_reward(old_re_batch, ob_batch)
             # TODO use the sampled data for training
             # HINT: use the agent's train function
             # HINT: print or plot the loss for debugging!

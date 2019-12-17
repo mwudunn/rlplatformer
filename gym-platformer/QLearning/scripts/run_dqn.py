@@ -4,6 +4,8 @@ import time
 from QLearning.infrastructure.rl_trainer import RL_Trainer
 from QLearning.agents.dqn_agent import DQNAgent
 from QLearning.infrastructure.dqn_utils import get_env_kwargs
+from QLearning.scripts.exploration import ExemplarExploration
+from QLearning.scripts.density_model import Exemplar
 
 
 class Q_Trainer(object):
@@ -61,9 +63,19 @@ def main():
     parser.add_argument('--use_gpu', '-gpu', action='store_true')
     parser.add_argument('--which_gpu', '-gpu_id', default=0)
     parser.add_argument('--scalar_log_freq', type=int, default=int(1e4))
-    parser.add_argument('--learning_rate', '-lr', type=float, default=0.0)
+    parser.add_argument('--learning_rate', '-lr', type=float, default=0.001)
     parser.add_argument('--save_params', action='store_true')
     parser.add_argument('--render', type=bool, default=False)
+
+    parser.add_argument('--bonus_coeff', '-bc', type=float, default=1)
+    parser.add_argument('--density_model', type=str, default='ex2')
+    parser.add_argument('--kl_weight', '-kl', type=float, default=1e-2)
+    parser.add_argument('--density_lr', '-dlr', type=float, default=5e-3)
+    parser.add_argument('--density_train_iters', '-dti', type=int, default=1000)
+    parser.add_argument('--density_batch_size', '-db', type=int, default=64)
+    parser.add_argument('--density_hiddim', '-dh', type=int, default=32)
+    parser.add_argument('--replay_size', '-rs', type=int, default=int(1e6))
+    parser.add_argument('--sigma', '-sig', type=float, default=0.2)
 
     args = parser.parse_args()
 

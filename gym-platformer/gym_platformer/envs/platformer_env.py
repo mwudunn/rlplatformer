@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 
 class PlatformerEnv(gym.Env):
     metadata = {'render.modes': ['human']}
-    ACTIONS = [Action.NONE, Action.LEFT, Action.RIGHT, Action.JUMP]
+    ACTIONS = [Action.LEFT, Action.RIGHT, Action.JUMP]
 
-    def __init__(self, platformer_file="test_map.npy", plaformer_size=None, enable_render=False, alloted_time=50000):
+    def __init__(self, platformer_file="test_map.npy", plaformer_size=None, enable_render=True, alloted_time=50000):
         self.viewer = None
         self.enable_render = enable_render
 
@@ -24,20 +24,22 @@ class PlatformerEnv(gym.Env):
         else:
             raise AttributeError("Failed to find platformer file")
         
+        self.game_map = self.platformer_view.game_map
         self.window_size = self.platformer_view.window_size
         
         #TODO: Define action space
-        self.action_space = spaces.Discrete(4)
+        self.action_space = spaces.Discrete(3)
 
         #TODO: Define observation - window size is a tuple defining grid
-        obs_shape = len(self.window_size) + 3
+        #obs_shape = len(self.window_size) + 3
+        obs_shape = len(self.window_size)
         low = np.zeros(obs_shape, dtype=int)
-        high =  np.array([self.window_size[0], self.window_size[1], float("inf"), float("inf"), alloted_time])
+        #high =  np.array([self.window_size[0], self.window_size[1], float("inf"), float("inf"), alloted_time])
+        high =  np.array([self.window_size[0], self.window_size[1]])
         self.observation_space = spaces.Box(low, high, dtype=np.int64)
 
         # Initial conditions
         self.state = self.get_state()
-        
         self.goal_location = self.platformer_view.get_goal_location()
 
         # Simulation related variables
@@ -85,6 +87,7 @@ class PlatformerEnv(gym.Env):
         #TODO: Get reward from current state:
         reward = self.get_reward()
         
+
         # Define game over variables
         done = self.done()
 
@@ -113,7 +116,7 @@ class PlatformerEnv(gym.Env):
     
     def get_distance_from_goal(self):
         # print(self.platformer_view.get_player().get_location(), self.goal_location)
-        return self.manhattanDistance(self.platformer_view.get_player().get_location(), self.goal_location)
+        return self.manhattanDistance(self.get_state(), self.goal_location)
 
 
     def get_reward(self):
@@ -127,17 +130,13 @@ class PlatformerEnv(gym.Env):
         #   - Distance from goal (closer to goal - better rewards)
         #   - Depth?
         #   - Stuck (velocity = 0), encourage jumping/changing direction )
-        
+        bigBucks = self.manhattanDistance([0,  0],  self.platformer_view.window_size)
         # Can see goal:
-        goalVisible = False
-        if 2 in state:
-            goalVisible = True
-       
-        if self.get_distance_from_goal() == 0:
+        if self.game_map.check_goal_collision(self.platformer_view.get_player()):
             remaining_time = self.platformer_view.get_remaining_time()
-            return 10.0 * (1 - self.remaining_time / self.alloted_time) + 10
-        else:
-            return 1.0/(self.get_distance_from_goal())
+            return bigBucks * (self.platformer_view.get_remaining_time() / self.platformer_view.alloted_time) + bigBucks
+        return -1.0 * self.get_distance_from_goal() / bigBucks
+        #return 1.0
 
 
     def done(self):

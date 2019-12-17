@@ -137,7 +137,7 @@ class Platformer2D:
 
 	def get_state(self):
 		state = self.player.get_state()
-		state.append(self.get_remaining_time())
+		#state.append(self.get_remaining_time())
 		return np.array(state)
 
 def create_test_map():
@@ -147,7 +147,7 @@ def create_test_map():
 	map_vals[:,-1] = 3
 	map_vals[-1, :] = 3
 	map_vals[-2,1] = 1
-	map_vals[-17,15] = 2
+	map_vals[-2,-2] = 2
 	map_vals[-5, 4:15] = 3
 	map_vals[-8, 17:25] = 3
 	map_vals[-12, 11:13] = 3
@@ -176,7 +176,8 @@ class Player:
 		return self.rect
 
 	def get_state(self):
-		return [self.get_location()[0], self.get_location()[1], self.velocity[0], self.velocity[1]]
+		#return [self.get_location()[0], self.get_location()[1], self.velocity[0], self.velocity[1]]
+		return [self.get_location()[0], self.get_location()[1]]
 
 	def perform_action(self, ac, dt):
 		if ac is not None and ac not in Action:
@@ -217,6 +218,8 @@ class Player:
 			self.velocity[1] += GRAVITY_MODIFIER * dt * GAME_SPEED
 			if self.velocity[1] > 5.0:
 				self.velocity[1] = 5.0
+			if self.velocity[1] < -5.0:
+				self.velocity[1] = -5.0
 		
 		next_rect = pygame.Rect(next_location, self.size)
 
