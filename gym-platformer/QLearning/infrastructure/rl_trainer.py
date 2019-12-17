@@ -162,7 +162,7 @@ class RL_Trainer(object):
                 # only perform an env step and add to replay buffer for DQN
 
 
-                render = (itr % 100000) < 5000 and itr > 100000
+                render = (itr % 50000 < 5000) and itr > 100000
                 
                 self.agent.step_env(render=render)
                 envsteps_this_batch = 1
