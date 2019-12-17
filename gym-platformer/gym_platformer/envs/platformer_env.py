@@ -32,10 +32,13 @@ class PlatformerEnv(gym.Env):
 
         #TODO: Define observation - window size is a tuple defining grid
         #obs_shape = len(self.window_size) + 3
-        obs_shape = len(self.window_size)
+        num_coins = len(self.platformer_view.game_map.coins)
+        obs_shape = len(self.window_size) + num_coins
         low = np.zeros(obs_shape, dtype=int)
         #high =  np.array([self.window_size[0], self.window_size[1], float("inf"), float("inf"), alloted_time])
-        high =  np.array([self.window_size[0], self.window_size[1]])
+        high = [self.window_size[0], self.window_size[1]]
+        high.extend([1 for i in range(num_coins)])
+        high =  np.array(high)
         self.observation_space = spaces.Box(low, high, dtype=np.int64)
 
         # Initial conditions
@@ -78,6 +81,8 @@ class PlatformerEnv(gym.Env):
                  However, official evaluations of your agent are not allowed to
                  use this for learning.
         """
+        prev_ob = self.get_state()
+
         _ = self.take_action(action)
 
         
@@ -85,7 +90,7 @@ class PlatformerEnv(gym.Env):
         ob = self.get_state()
         
         #TODO: Get reward from current state:
-        reward = self.get_reward()
+        reward = self.get_reward(ob, prev_ob)
         
 
         # Define game over variables
@@ -119,9 +124,10 @@ class PlatformerEnv(gym.Env):
         return self.manhattanDistance(self.get_state(), self.goal_location)
 
 
-    def get_reward(self):
+    def get_reward(self, ob, prev_ob):
         """ Reward is given for minimizing the distance to the goal. """
-        state = self.get_state()
+        prev_coins = prev_ob[2:]
+        coins = ob[2:]
         # Encode:
         #   - At goal (max reward for reaching the goal)
         #   - Can see goal/seen goal: get better rewards
@@ -130,12 +136,15 @@ class PlatformerEnv(gym.Env):
         #   - Distance from goal (closer to goal - better rewards)
         #   - Depth?
         #   - Stuck (velocity = 0), encourage jumping/changing direction )
-        bigBucks = self.manhattanDistance([0,  0],  self.platformer_view.window_size)
+        
         # Can see goal:
         if self.game_map.check_goal_collision(self.platformer_view.get_player()):
             remaining_time = self.platformer_view.get_remaining_time()
-            return bigBucks * (self.platformer_view.get_remaining_time() / self.platformer_view.alloted_time) + bigBucks
-        return -1.0 * self.get_distance_from_goal() / bigBucks
+            print(remaining_time)
+            return 10.0 * (self.platformer_view.get_remaining_time() / self.platformer_view.alloted_time) + 10
+        if sum(prev_coins) != sum(coins):
+            return 1.0
+        return 0.0
         #return 1.0
 
 

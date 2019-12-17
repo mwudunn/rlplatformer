@@ -13,7 +13,8 @@ BLACK=(0,0,0,0)
 params = {
 	"PLAYER": 1,
 	"GOAL": 2,
-	"OBSTACLE": 3
+	"OBSTACLE": 3,
+	"COIN": 4,
 }
 
 class Action(Enum):
@@ -129,6 +130,7 @@ class Platformer2D:
 
 	def reset(self):
 		start_location = self.game_map.get_location_from_index(self.start_point)
+		self.game_map.coins_flag = [1 for i in self.game_map.coins]
 		self.game_over = False
 		self.timesteps = 0
 		self.clock = pygame.time.Clock()
@@ -152,6 +154,8 @@ def create_test_map():
 	map_vals[-8, 17:25] = 3
 	map_vals[-12, 11:13] = 3
 	map_vals[-16, 15] = 3
+	for i in range(8):
+		map_vals[-2, (i + 1)*3] = 4
 
 	np.save("platformer_maps/test_map", map_vals)
 
@@ -172,12 +176,17 @@ class Player:
 	def get_location(self):
 		return self.location
 
+	def get_coins(self):
+		return self.game_map.coins_flag
+
 	def get_rect(self):
 		return self.rect
 
 	def get_state(self):
 		#return [self.get_location()[0], self.get_location()[1], self.velocity[0], self.velocity[1]]
-		return [self.get_location()[0], self.get_location()[1]]
+		state = [self.get_location()[0], self.get_location()[1]]
+		state.extend(self.get_coins())
+		return state
 
 	def perform_action(self, ac, dt):
 		if ac is not None and ac not in Action:
@@ -221,6 +230,10 @@ class Player:
 			if self.velocity[1] < -5.0:
 				self.velocity[1] = -5.0
 		
+		coin, index = self.game_map.check_coin_collision(next_rect_x)
+		if index != -1:
+			self.game_map.coins_flag[index] = 0
+
 		next_rect = pygame.Rect(next_location, self.size)
 
 		self.location = next_location
@@ -244,12 +257,21 @@ class Map:
 			self.map_size = map_cells.shape
 			obstacle_locations = self.get_locations_of_symbol(3)
 			goal_locations = self.get_locations_of_symbol(2)
+			coin_locations = self.get_locations_of_symbol(4)
 
 			self.obstacles = []
 			for obstacle_index_loc in obstacle_locations:
 				obstacle_loc = self.get_location_from_index(obstacle_index_loc)
 				obstacle = pygame.Rect(obstacle_loc, cell_size)
 				self.obstacles.append(obstacle)
+
+			self.coins = []
+			self.coins_flag = []
+			for coin_index_loc in coin_locations:
+				coin_loc = self.get_location_from_index(coin_index_loc)
+				coin = pygame.Rect(coin_loc, cell_size)
+				self.coins.append(coin)
+				self.coins_flag.append(1)
 
 			self.goals = []
 			for goal_index_loc in goal_locations:
@@ -289,6 +311,13 @@ class Map:
 			if player.collide(goal):
 				return True
 		return False
+		
+	def check_coin_collision(self, player_rect):
+		for i in range(len(self.coins)):
+			coin = self.coins[i]
+			if self.coins_flag[i] and player_rect.colliderect(coin):
+			   return (coin, i)
+		return -1, -1
 
 	def check_obstacle_collision(self, player_rect):
 		for obstacle in self.obstacles:
@@ -299,6 +328,7 @@ class Map:
 	def draw_objects(self, layer):
 		self.draw_obstacles(layer)
 		self.draw_goal(layer)
+		self.draw_coins(layer)
 
 	def draw_goal(self, layer):
 		COLOR=(200,80,80)
@@ -309,6 +339,14 @@ class Map:
 		BLUE=(40,40,120)
 		for obstacle in self.obstacles:
 			draw_rect = pygame.draw.rect(layer, BLUE, obstacle)
+
+	def draw_coins(self, layer):
+		YELLOW=(155, 155, 40)
+		for i in range(len(self.coins)):
+			coin = self.coins[i]
+			if self.coins_flag[i]:
+				draw_rect = pygame.draw.rect(layer, YELLOW, coin)
+
 
 	@property
 	def MAP_W(self):
