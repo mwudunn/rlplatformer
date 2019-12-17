@@ -143,6 +143,7 @@ class Platformer2D:
 		return np.array(state)
 
 def create_test_map():
+	"""
 	map_vals = np.zeros((20, 30))
 	map_vals[:, 0] = 3
 	map_vals[0,:] = 3
@@ -156,6 +157,26 @@ def create_test_map():
 	map_vals[-16, 15] = 3
 	for i in range(8):
 		map_vals[-2, (i + 1)*3] = 4
+	"""
+	map_vals = np.zeros((20, 30))
+	map_vals[:, 0] = 3
+	map_vals[0,:] = 3
+	map_vals[:,-1] = 3
+	map_vals[-1, :] = 3
+	map_vals[-2,1] = 1
+	map_vals[-17, 15] = 2
+	map_vals[-5, 4:15] = 3
+	map_vals[-8, 17:25] = 3
+	map_vals[-12, 11:13] = 3
+	map_vals[-16, 15] = 3
+	map_vals[-4, 2] = 4
+	map_vals[-6, 8] = 4
+	map_vals[-6, 5] = 4
+	map_vals[-6, 11] = 4
+	map_vals[-6, 14] = 4
+	map_vals[-9, 18] = 4
+	map_vals[-15, 15] = 4
+	map_vals[-13, 12] = 4
 
 	np.save("platformer_maps/test_map", map_vals)
 
