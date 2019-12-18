@@ -169,14 +169,11 @@ def create_test_map():
 	map_vals[-8, 17:25] = 3
 	map_vals[-12, 11:13] = 3
 	map_vals[-16, 15] = 3
-	map_vals[-4, 2] = 4
-	map_vals[-6, 8] = 4
-	map_vals[-6, 5] = 4
-	map_vals[-6, 11] = 4
-	map_vals[-6, 14] = 4
-	map_vals[-9, 18] = 4
-	map_vals[-15, 15] = 4
-	map_vals[-13, 12] = 4
+	map_vals[-3:-5, 2] = 4
+	map_vals[-6, 2:15] = 4
+	map_vals[-12:-9, 18] = 4
+	map_vals[-15:-12, 15] = 4
+	map_vals[-16:-12, 12] = 4
 
 	np.save("platformer_maps/test_map", map_vals)
 
