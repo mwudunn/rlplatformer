@@ -1,0 +1,1 @@
+Created a gym environment for a platformer game to test the Reinforcement Learning algorithms developed in CS285, including QLearning and exploration using Parametric Density Estimation (examplar model).
